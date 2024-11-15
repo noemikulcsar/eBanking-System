@@ -8,7 +8,7 @@ CORS(app)
 db_config = {
     'host': 'localhost',
     'user': 'root',  
-    'password': 'root',  
+    'password': 'vydqyc-radsoz',  
     'database': 'utpay'  
 }
 
@@ -111,6 +111,33 @@ def transaction_history():
         print(f"Error: {err}")
         return jsonify({'error': 'A apărut o eroare la preluarea istoricului tranzacțiilor'}), 500
     finally:
+        cursor.close()
+        connection.close()
+
+@app.route('/api/subscriptions', methods=['GET'])
+def get_subscriptions():
+    try:
+        # Creăm o conexiune la baza de date
+        connection = mysql.connector.connect(**db_config)
+        cursor = connection.cursor(dictionary=True)
+        
+        # Executăm interogarea SQL pentru a obține abonamentele
+        cursor.execute("""
+            SELECT platforma.nume AS name, platforma.pret AS price, abonament.data_inceput AS start_date
+            FROM abonament
+            JOIN platforma ON abonament.id_platforma = platforma.id
+        """)
+        
+        # Obținem rezultatele
+        subscriptions = cursor.fetchall()
+        return jsonify(subscriptions)
+    
+    except mysql.connector.Error as err:
+        print(f"Error: {err}")
+        return jsonify({'error': 'A apărut o eroare la preluarea abonamentelor'}), 500
+    
+    finally:
+        # Închidem cursorul și conexiunea
         cursor.close()
         connection.close()
 
