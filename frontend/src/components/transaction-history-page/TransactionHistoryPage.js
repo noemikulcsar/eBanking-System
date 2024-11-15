@@ -1,8 +1,24 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Grid, Card, CardContent, Typography, Table, TableBody, TableCell, TableContainer, TableRow, Paper } from '@mui/material';
-import { transactionData } from './transactionData'; // Importăm datele din transactionData.js
+import axios from 'axios';
 
 const TransactionHistoryPage = () => {
+  const [transactions, setTransactions] = useState([]);
+
+  useEffect(() => {
+    const fetchTransactionHistory = async () => {
+      try {
+        const response = await axios.get('http://localhost:5000/api/transaction-history');
+        if (response.data) {
+          setTransactions(response.data);
+        }
+      } catch (error) {
+        console.error('Error fetching transaction history:', error);
+      }
+    };
+    fetchTransactionHistory();
+  }, []);
+
   return (
     <Grid container justifyContent="center" sx={{ padding: 3 }}>
       <Grid item xs={12} sm={8}>
@@ -12,7 +28,6 @@ const TransactionHistoryPage = () => {
               Istoric Tranzacții
             </Typography>
 
-            {/* Tabel cu istoricul tranzacțiilor */}
             <TableContainer component={Paper}>
               <Table>
                 <thead>
@@ -24,14 +39,36 @@ const TransactionHistoryPage = () => {
                   </TableRow>
                 </thead>
                 <TableBody>
-                  {transactionData.map((transaction, index) => (
-                    <TableRow key={index}>
-                      <TableCell>{transaction.from}</TableCell>
-                      <TableCell>{transaction.to}</TableCell>
-                      <TableCell>{transaction.amount}</TableCell>
-                      <TableCell>{transaction.date}</TableCell>
-                    </TableRow>
-                  ))}
+                  {transactions.map((transaction, index) => {
+                    let from = '';
+                    let to = '';
+                    let sumaAfisata = '';
+
+                    if (transaction.id_expeditor === 1) {
+                      from = `${transaction.from_nume} ${transaction.from_prenume}`;
+                      sumaAfisata = `${transaction.suma}`;
+                      to = transaction.id_destinatar === 1 
+                        ? `${transaction.to_nume} ${transaction.to_prenume}`
+                        : (transaction.id_magazin ? `${transaction.magazin_nume}, ${transaction.magazin_adresa}` : `${transaction.to_nume} ${transaction.to_prenume}`);
+                    } else if (transaction.id_destinatar === 1) {
+                      from = `${transaction.from_nume} ${transaction.from_prenume}`;
+                      sumaAfisata = `${transaction.suma}`;
+                      to = `${transaction.to_nume} ${transaction.to_prenume}`;
+                    } else {
+                      from = `${transaction.from_nume} ${transaction.from_prenume}`;
+                      to = transaction.id_magazin ? `${transaction.magazin_nume}, ${transaction.magazin_adresa}` : `${transaction.to_nume} ${transaction.to_prenume}`;
+                      sumaAfisata = `${transaction.suma}`;
+                    }
+
+                    return (
+                      <TableRow key={index}>
+                        <TableCell>{from}</TableCell>
+                        <TableCell>{to}</TableCell>
+                        <TableCell>{sumaAfisata}</TableCell>
+                        <TableCell>{new Date(transaction.data).toLocaleString()}</TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </TableContainer>
