@@ -80,7 +80,7 @@ const SubscriptionsPage = () => {
         </Card>
       </Grid>
 
-      {/* Snackbar for success message */}
+      {/* success message */}
       <Snackbar
         open={openSnackbar}
         autoHideDuration={3000}
