@@ -1,13 +1,40 @@
-import React, { useState } from 'react';
-import { TextField, Button, Grid, Typography, Box } from '@mui/material';
+import React, { useState, useEffect } from 'react';
+import { TextField, Button, Grid, Typography, Box, Snackbar, Alert } from '@mui/material';
 import axios from 'axios';
+import { io } from 'socket.io-client';
 
 const TransferPage = () => {
   const [phoneNumber, setPhoneNumber] = useState('');
   const [amount, setAmount] = useState('');
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+  const [notificationMessage, setNotificationMessage] = useState('');
+  const [notification, setNotification] = useState('');
 
+  useEffect(() => {
+    const socket = io('http://localhost:5000');
+    socket.on('transaction_notification', (data) => {
+      setNotificationMessage(data.message);
+    });
+
+    return () => socket.disconnect();
+  }, []);
+  useEffect(() => {
+    const socket = io('http://localhost:5000');
+    socket.on('transaction_notification', async (data) => {
+      setNotification(data.message);
+        try {
+        await axios.post('http://localhost:5000/api/notificare', {
+          id_client: 1,
+          mesaj: data.message,
+        });
+      } catch (error) {
+        console.error('Eroare la salvarea notificării:', error);
+      }
+    });
+  
+    return () => socket.disconnect();
+  }, []);
+  
   const handlePhoneChange = (event) => {
     setPhoneNumber(event.target.value);
   };
@@ -17,6 +44,9 @@ const TransferPage = () => {
   };
 
   const handleSubmit = async () => {
+    setError('');
+    setNotificationMessage('');
+
     if (!phoneNumber || !amount) {
       setError('Please fill in both fields');
       return;
@@ -30,21 +60,30 @@ const TransferPage = () => {
     }
 
     try {
-      const response = await axios.post('http://localhost:5000/api/transfer', {
+      // Obține datele utilizatorului destinat
+      const recipientResponse = await axios.get(`http://localhost:5000/api/client-by-phone/${phoneNumber}`);
+      const { nume, prenume } = recipientResponse.data;
+
+      // Efectuează transferul
+      const transferResponse = await axios.post('http://localhost:5000/api/transfer', {
         phoneNumber,
-        amount: parsedAmount
+        amount: parsedAmount,
       });
 
-      if (response.data.success) {
-        setSuccess('Transfer realizat cu succes!');
+      if (transferResponse.data.success) {
+        setNotificationMessage(`Transfer de ${parsedAmount} RON către ${nume} ${prenume} efectuat cu succes!`);
         setPhoneNumber('');
         setAmount('');
       } else {
-        setError(response.data.error || 'A apărut o eroare la procesarea transferului');
+        setError(transferResponse.data.error || 'A apărut o eroare la procesarea transferului');
       }
     } catch (error) {
-      console.error('Error during transfer:', error);
-      setError('A apărut o eroare la procesarea transferului');
+      if (error.response?.status === 404) {
+        setError('Numărul de telefon nu corespunde unui utilizator valid.');
+      } else {
+        console.error('Error during transfer:', error);
+        setError('A apărut o eroare la procesarea transferului');
+      }
     }
   };
 
@@ -86,27 +125,30 @@ const TransferPage = () => {
             </Typography>
           </Grid>
         )}
-
-        {success && (
-          <Grid item xs={12}>
-            <Typography color="success" align="center">
-              {success}
-            </Typography>
-          </Grid>
-        )}
-
         <Grid item xs={12}>
           <Button
             variant="contained"
             color="success"
             fullWidth
             onClick={handleSubmit}
-            sx={{ backgroundColor: '#3c4e4d'}}
+            sx={{ backgroundColor: '#3c4e4d' }}
           >
             Confirm Transfer
           </Button>
         </Grid>
       </Grid>
+
+      {/* Snackbar unificat pentru toate notificările */}
+      <Snackbar
+        open={!!notificationMessage}
+        autoHideDuration={6000}
+        onClose={() => setNotificationMessage('')}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      >
+        <Alert onClose={() => setNotificationMessage('')} severity="success" sx={{ width: '100%' }}>
+          {notificationMessage}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };
