@@ -340,6 +340,30 @@ def delete_subscription_by_name():
     finally:
         cursor.close()
         connection.close()
+        
+@app.route('/api/debt', methods=['GET'])
+def get_debt_data():
+    try:
+        connection = mysql.connector.connect(**db_config)
+        cursor = connection.cursor(dictionary=True)
+        
+        cursor.execute("""
+            SELECT CONCAT(p2.nume, ' ', p2.prenume) AS name, pr.datorie AS amount, DATE(pr.data_datorie) AS date
+            FROM prietenie pr
+            JOIN client p2 ON pr.id_client2 = p2.id
+            WHERE pr.id_client1 = %s
+        """, (1,))
+        
+        debt_data = cursor.fetchall()
+        return jsonify(debt_data)
+    
+    except mysql.connector.Error as err:
+        print(f"Error: {err}")
+        return jsonify({'error': 'Error fetching debt data'}), 500
+    
+    finally:
+        cursor.close()
+        connection.close()
 
 if __name__ == '__main__':
     #app.run(debug=True)
