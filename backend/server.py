@@ -3,6 +3,8 @@ from flask import Flask, jsonify, request
 import mysql.connector
 from flask_cors import CORS
 from flask_socketio import SocketIO
+import random
+from datetime import date, timedelta
 
 app = Flask(__name__)
 CORS(app)
@@ -11,7 +13,7 @@ socketio = SocketIO(app, cors_allowed_origins="*")
 db_config = {
     'host': 'localhost',
     'user': 'root',  
-    'password': 'root',  
+    'password': 'rootroot',  
     'database': 'utpay'  
 }
 
@@ -238,8 +240,72 @@ def get_subscriptions():
         cursor.close()
         connection.close()
 
+@app.route('/api/add-friend', methods=['POST'])
+def add_friend():
+    # Obține datele din cererea POST
+    data = request.get_json()
+    
+    nume = data.get('nume')
+    prenume = data.get('prenume')
+    cnp = data.get('cnp')
+    telefon = data.get('telefon')
+    email = data.get('email')
+    
+    if not nume or not prenume or not cnp or not telefon or not email:
+        return jsonify({'error': 'Toate câmpurile sunt necesare!'}), 400
+
+    try:
+        # Conectare la baza de date
+        connection = mysql.connector.connect(**db_config)
+        cursor = connection.cursor()
+
+        # Inserare date în tabela client
+        cursor.execute("""
+            INSERT INTO client (nume, prenume, cnp, telefon, email)
+            VALUES (%s, %s, %s, %s, %s)
+        """, (nume, prenume, cnp, telefon, email))
+        
+        # Obține ID-ul clientului nou creat
+        client_id = cursor.lastrowid
+
+        # Generare date randomizate pentru tabelul cont
+        iban_base = "RO49AAAA1B31007593"
+        iban_random = str(random.randint(100000, 999999))  # Randomizează ultimele 6 cifre
+        iban = iban_base + iban_random
+        card_number = ''.join([str(random.randint(0, 9)) for _ in range(16)])  # Număr card 16 cifre
+        cvv = random.randint(100, 999)  # CVV 3 cifre
+
+        # Generare dată expirare random (compatibil cu MySQL)
+        expiry_year = random.randint(2028, 2035)  # An după 2028
+        expiry_month = random.randint(1, 12)  # Lună
+        expiry_day = 1  # Fixăm ziua ca 1
+        expiry_date = date(expiry_year, expiry_month, expiry_day).isoformat()
+
+        # Inserare date în tabela cont
+        cursor.execute("""
+            INSERT INTO cont (id_client, iban, sold, economii, numar_card, cvv, data_expirare)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
+        """, (client_id, iban, 0, 0, card_number, cvv, expiry_date))
+
+        # Inserare relație de prietenie în tabela prietenie
+        cursor.execute("""
+            INSERT INTO prietenie (id_client1, id_client2, datorie)
+            VALUES (%s, %s, %s)
+        """, (1, client_id, 0))
+        
+        # Confirmă inserarea datelor
+        connection.commit()
+        return jsonify({'success': True, 'message': 'Prieten adăugat cu succes!'}), 200
+
+    except mysql.connector.Error as err:
+        print(f"Error: {err}")
+        return jsonify({'error': 'A apărut o eroare la adăugarea prietenului.'}), 500
+
+    finally:
+        cursor.close()
+        connection.close()
 
 if __name__ == '__main__':
     #app.run(debug=True)
-    socketio.run(app, debug=True)
+    socketio.run(app, debug=True, port=8002)
 

@@ -18,7 +18,7 @@ const SavingsAccountPage = () => {
   // Apelul API pentru a obține soldul și economiile de la backend
   const fetchBalance = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/api/balance');
+      const response = await axios.get('http://localhost:8002/api/balance');
       if (response.data.balance !== undefined) {
         setBalance(response.data.balance); // Actualizăm soldul
         setSavings(response.data.savings); // Actualizăm economiile

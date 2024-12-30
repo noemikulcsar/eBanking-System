@@ -11,7 +11,7 @@ const TransferPage = () => {
   const [notification, setNotification] = useState('');
 
   useEffect(() => {
-    const socket = io('http://localhost:5000');
+    const socket = io('http://localhost:8002');
     socket.on('transaction_notification', (data) => {
       setNotificationMessage(data.message);
     });
@@ -19,11 +19,11 @@ const TransferPage = () => {
     return () => socket.disconnect();
   }, []);
   useEffect(() => {
-    const socket = io('http://localhost:5000');
+    const socket = io('http://localhost:8002');
     socket.on('transaction_notification', async (data) => {
       setNotification(data.message);
         try {
-        await axios.post('http://localhost:5000/api/notificare', {
+        await axios.post('http://localhost:8002/api/notificare', {
           id_client: 1,
           mesaj: data.message,
         });
@@ -61,11 +61,11 @@ const TransferPage = () => {
 
     try {
       // Obține datele utilizatorului destinat
-      const recipientResponse = await axios.get(`http://localhost:5000/api/client-by-phone/${phoneNumber}`);
+      const recipientResponse = await axios.get(`http://localhost:8002/api/client-by-phone/${phoneNumber}`);
       const { nume, prenume } = recipientResponse.data;
 
       // Efectuează transferul
-      const transferResponse = await axios.post('http://localhost:5000/api/transfer', {
+      const transferResponse = await axios.post('http://localhost:8002/api/transfer', {
         phoneNumber,
         amount: parsedAmount,
       });

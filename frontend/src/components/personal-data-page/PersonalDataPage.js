@@ -8,7 +8,7 @@ const PersonalDataPage = () => {
   // Apelul API pentru a obține datele personale ale clientului
   const fetchClientData = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/api/personal-data');
+      const response = await axios.get('http://localhost:8002/api/personal-data');
       if (response.data) {
         setClientData(response.data); // Actualizăm datele clientului
       }
