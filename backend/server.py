@@ -8,7 +8,7 @@ CORS(app)
 db_config = {
     'host': 'localhost',
     'user': 'root',  
-    'password': 'vydqyc-radsoz',  
+    'password': 'root',  
     'database': 'utpay'  
 }
 
@@ -78,7 +78,51 @@ def get_personal_data():
         return jsonify(client_data)
     else:
         return jsonify({'error': 'Datele clientului nu au fost găsite'}), 404
-    
+@app.route('/api/transfer', methods=['POST'])
+def transfer():
+    data = request.get_json()
+    phone_number = data.get('phoneNumber')
+    amount = data.get('amount')
+
+    if not phone_number or not amount:
+        return jsonify({'error': 'Phone number or amount is missing'}), 400
+
+    try:
+        connection = mysql.connector.connect(**db_config)
+        cursor = connection.cursor(dictionary=True)
+
+        cursor.execute("SELECT id FROM client WHERE telefon = %s", (phone_number,))
+        recipient = cursor.fetchone()
+
+        if not recipient:
+            return jsonify({'error': 'Clientul cu acest număr de telefon nu a fost găsit'}), 404
+
+        cursor.execute("SELECT sold FROM cont WHERE id_client = 1")
+        sender_account = cursor.fetchone()
+
+        if not sender_account or sender_account['sold'] < amount:
+            return jsonify({'error': 'Fonduri insuficiente pentru transfer'}), 400
+
+        # Actualizăm soldurile
+        cursor.execute("UPDATE cont SET sold = sold + %s WHERE id_client = %s", (amount, recipient['id']))
+        cursor.execute("UPDATE cont SET sold = sold - %s WHERE id_client = 1", (amount,))
+
+        # Adăugăm tranzacția în tabela 'tranzactie'
+        cursor.execute("""
+            INSERT INTO tranzactie (id_expeditor, id_destinatar, suma, data, tip_destinatar, detalii)
+            VALUES (%s, %s, %s, NOW(), 'client', NULL)
+        """, (1, recipient['id'], amount))
+
+        connection.commit()
+        return jsonify({'success': True})
+
+    except mysql.connector.Error as err:
+        print(f"Error: {err}")
+        return jsonify({'error': 'A apărut o eroare la procesarea transferului'}), 500
+    finally:
+        cursor.close()
+        connection.close()
+
 @app.route('/api/transaction-history', methods=['GET'])
 def transaction_history():
     try:
@@ -117,18 +161,16 @@ def transaction_history():
 @app.route('/api/subscriptions', methods=['GET'])
 def get_subscriptions():
     try:
-        # Creăm o conexiune la baza de date
         connection = mysql.connector.connect(**db_config)
         cursor = connection.cursor(dictionary=True)
         
-        # Executăm interogarea SQL pentru a obține abonamentele
         cursor.execute("""
             SELECT platforma.nume AS name, platforma.pret AS price, abonament.data_inceput AS start_date
             FROM abonament
             JOIN platforma ON abonament.id_platforma = platforma.id
-        """)
+            WHERE abonament.id_client = %s
+        """, (1,))
         
-        # Obținem rezultatele
         subscriptions = cursor.fetchall()
         return jsonify(subscriptions)
     
@@ -137,9 +179,9 @@ def get_subscriptions():
         return jsonify({'error': 'A apărut o eroare la preluarea abonamentelor'}), 500
     
     finally:
-        # Închidem cursorul și conexiunea
         cursor.close()
         connection.close()
+
 
 if __name__ == '__main__':
     app.run(debug=True)

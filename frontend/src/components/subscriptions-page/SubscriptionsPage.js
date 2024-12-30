@@ -1,14 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Grid, Card, CardContent, Typography, Button, TextField, List, ListItem, ListItemText, ListItemSecondaryAction, IconButton } from '@mui/material';
+import { Grid, Card, CardContent, Typography, List, ListItem, ListItemText, ListItemSecondaryAction, IconButton } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
-import AddIcon from '@mui/icons-material/Add';
 import axios from 'axios';
 
 const SubscriptionsPage = () => {
-  // State pentru abonamentele active
   const [subscriptions, setSubscriptions] = useState([]);
-  const [newSubscription, setNewSubscription] = useState('');
-  const [newPrice, setNewPrice] = useState('');
 
   useEffect(() => {
     const fetchSubscriptions = async () => {
@@ -24,11 +20,6 @@ const SubscriptionsPage = () => {
     fetchSubscriptions();
   }, []);
   
-  // Funcția pentru a șterge un abonament
-  const removeSubscription = (id) => {
-    setSubscriptions(subscriptions.filter(subscription => subscription.id !== id));
-  };
-
   return (
     <Grid container justifyContent="center" sx={{ padding: 3 }}>
       <Grid item xs={12} sm={8}>
@@ -37,8 +28,6 @@ const SubscriptionsPage = () => {
             <Typography variant="h4" align="center" color="white" gutterBottom>
               Abonamente
             </Typography>
-
-            {/* Listă de abonamente active */}
             <Typography variant="h6" color="white" gutterBottom>
               Abonamente Active
             </Typography>
@@ -50,7 +39,10 @@ const SubscriptionsPage = () => {
                     secondary={`Preț: ${subscription.price} RON | Data începerii: ${subscription.start_date}`}
                   />
                   <ListItemSecondaryAction>
-                    <IconButton edge="end" onClick={() => removeSubscription(subscription.id)} color="error">
+                    <IconButton 
+                      edge="end" 
+                      color="error" 
+                    >
                       <DeleteIcon />
                     </IconButton>
                   </ListItemSecondaryAction>
