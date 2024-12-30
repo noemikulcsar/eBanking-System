@@ -1,9 +1,12 @@
+import datetime
 from flask import Flask, jsonify, request
 import mysql.connector
 from flask_cors import CORS
+from flask_socketio import SocketIO
 
 app = Flask(__name__)
 CORS(app)
+socketio = SocketIO(app, cors_allowed_origins="*")
 
 db_config = {
     'host': 'localhost',
@@ -112,8 +115,14 @@ def transfer():
             INSERT INTO tranzactie (id_expeditor, id_destinatar, suma, data, tip_destinatar, detalii)
             VALUES (%s, %s, %s, NOW(), 'client', NULL)
         """, (1, recipient['id'], amount))
+        # Adăugăm notificarea în tabela 'notificare'
+        cursor.execute("""
+            INSERT INTO notificare (id_client, mesaj, data_notificare, status)
+            VALUES (%s, %s, NOW(), %s)
+            """, (1, f'Transfer de {amount} RON către {recipient["id"]} efectuat cu succes!', 'necitit'))
 
         connection.commit()
+        socketio.emit('transaction_notification', {'message': f'Transfer de {amount} RON efectuat cu succes!'})
         return jsonify({'success': True})
 
     except mysql.connector.Error as err:
@@ -122,6 +131,23 @@ def transfer():
     finally:
         cursor.close()
         connection.close()
+
+@app.route('/api/client-by-phone/<phone_number>', methods=['GET'])
+def get_client_by_phone(phone_number):
+    try:
+        connection = mysql.connector.connect(**db_config)
+        cursor = connection.cursor(dictionary=True)
+        cursor.execute("SELECT nume, prenume FROM client WHERE telefon = %s", (phone_number,))
+        client = cursor.fetchone()
+        cursor.close()
+        connection.close()
+        if client:
+            return jsonify(client)
+        else:
+            return jsonify({'error': 'Clientul nu a fost găsit'}), 404
+    except mysql.connector.Error as err:
+        print(f"Error: {err}")
+        return jsonify({'error': 'A apărut o eroare la preluarea datelor clientului'}), 500
 
 @app.route('/api/transaction-history', methods=['GET'])
 def transaction_history():
@@ -157,6 +183,36 @@ def transaction_history():
     finally:
         cursor.close()
         connection.close()
+@app.route('/api/notificare', methods=['POST'])
+def add_notificare():
+    try:
+        connection = mysql.connector.connect(**db_config)
+        cursor = connection.cursor()
+        
+        # Datele primite de la client
+        data = request.json
+        id_client = data.get('id_client')
+        mesaj = data.get('mesaj')
+        
+        if not id_client or not mesaj:
+            return jsonify({'error': 'Lipsesc datele necesare'}), 400
+        
+        data_notificare = datetime.now()
+        cursor.execute("""
+            INSERT INTO notificare (id_client, mesaj, data_notificare, status)
+            VALUES (%s, %s, %s, %s)
+        """, (id_client, mesaj, data_notificare, 'necitit'))
+        
+        connection.commit()
+        return jsonify({'success': True}), 200
+
+    except mysql.connector.Error as err:
+        print(f"Error: {err}")
+        return jsonify({'error': 'A apărut o eroare la salvarea notificării'}), 500
+
+    finally:
+        cursor.close()
+        connection.close()
 
 @app.route('/api/subscriptions', methods=['GET'])
 def get_subscriptions():
@@ -184,4 +240,6 @@ def get_subscriptions():
 
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    #app.run(debug=True)
+    socketio.run(app, debug=True)
+
