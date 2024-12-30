@@ -1,15 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { Grid, Card, CardContent, Typography, List, ListItem, ListItemText, ListItemSecondaryAction, IconButton } from '@mui/material';
-import DeleteIcon from '@mui/icons-material/Delete';
+import { Grid, Card, CardContent, Typography, List, ListItem, ListItemText, ListItemSecondaryAction, IconButton, Snackbar } from '@mui/material';
+import CloseIcon from '@mui/icons-material/Close';
 import axios from 'axios';
 
 const SubscriptionsPage = () => {
   const [subscriptions, setSubscriptions] = useState([]);
+  const [successMessage, setSuccessMessage] = useState('');
+  const [openSnackbar, setOpenSnackbar] = useState(false);
 
   useEffect(() => {
     const fetchSubscriptions = async () => {
       try {
-        const response = await axios.get('http://localhost:5000/api/subscriptions');
+        const response = await axios.get('http://localhost:8002/api/subscriptions');
         if (response.data) {
           setSubscriptions(response.data);
         }
@@ -19,31 +21,56 @@ const SubscriptionsPage = () => {
     };
     fetchSubscriptions();
   }, []);
-  
+
+
+  const handleDelete = async (platformName) => {
+    try {
+      const response = await axios.delete('http://localhost:8002/api/subscriptions/delete', {
+        data: { platform_name: platformName },  
+      });
+      if (response.data.success) {
+        setSubscriptions((prevSubscriptions) =>
+          prevSubscriptions.filter((subscription) => subscription.name !== platformName)
+        );
+        setSuccessMessage('Subscription cancelled successfully!');
+        setOpenSnackbar(true);
+      } else {
+        console.error('Error deleting subscription:', response.data.error);
+      }
+    } catch (error) {
+      console.error('Error deleting subscription:', error);
+    }
+  };
+
+  const handleCloseSnackbar = () => {
+    setOpenSnackbar(false);
+  };
+
   return (
     <Grid container justifyContent="center" sx={{ padding: 3 }}>
       <Grid item xs={12} sm={8}>
         <Card sx={{ backgroundColor: '#686a6d', borderRadius: 2 }}>
           <CardContent>
             <Typography variant="h4" align="center" color="white" gutterBottom>
-              Abonamente
+              Subscriptions
             </Typography>
             <Typography variant="h6" color="white" gutterBottom>
-              Abonamente Active
+              Active Subscriptions
             </Typography>
             <List>
-              {subscriptions.map((subscription, index) => (
-                <ListItem key={index} sx={{ backgroundColor: '#3c4e4d', marginBottom: 1, borderRadius: 2 }}>
+              {subscriptions.map((subscription) => (
+                <ListItem key={subscription.name} sx={{ backgroundColor: '#3c4e4d', marginBottom: 1, borderRadius: 2 }}>
                   <ListItemText
                     primary={subscription.name}
-                    secondary={`Preț: ${subscription.price} RON | Data începerii: ${subscription.start_date}`}
+                    secondary={`Price: ${subscription.price} RON | Start date: ${subscription.start_date}`}
                   />
                   <ListItemSecondaryAction>
                     <IconButton 
                       edge="end" 
                       color="error" 
+                      onClick={() => handleDelete(subscription.name)}
                     >
-                      <DeleteIcon />
+                      <CloseIcon />
                     </IconButton>
                   </ListItemSecondaryAction>
                 </ListItem>
@@ -52,6 +79,14 @@ const SubscriptionsPage = () => {
           </CardContent>
         </Card>
       </Grid>
+
+      {/* Snackbar for success message */}
+      <Snackbar
+        open={openSnackbar}
+        autoHideDuration={3000}
+        onClose={handleCloseSnackbar}
+        message={successMessage}
+      />
     </Grid>
   );
 };

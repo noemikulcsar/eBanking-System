@@ -8,7 +8,7 @@ const TransactionHistoryPage = () => {
   useEffect(() => {
     const fetchTransactionHistory = async () => {
       try {
-        const response = await axios.get('http://localhost:5000/api/transaction-history');
+        const response = await axios.get('http://localhost:8002/api/transaction-history');
         if (response.data) {
           setTransactions(response.data);
         }

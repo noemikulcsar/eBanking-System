@@ -312,6 +312,35 @@ def get_clients():
         cursor.close()
         connection.close()
 
+@app.route('/api/subscriptions/delete', methods=['DELETE'])
+def delete_subscription_by_name():
+    try:
+        platform_name = request.json.get('platform_name')
+        connection = mysql.connector.connect(**db_config)
+        cursor = connection.cursor()
+        cursor.execute("SELECT id FROM platforma WHERE nume = %s", (platform_name,))
+        platform = cursor.fetchone()
+
+        if not platform:
+            return jsonify({'error': 'Platforma nu a fost găsită'}), 404
+
+        platform_id = platform[0]
+        cursor.execute("DELETE FROM abonament WHERE id_platforma = %s AND id_client = %s", (platform_id, 1))
+        connection.commit()
+
+        if cursor.rowcount > 0:
+            return jsonify({'success': True}), 200
+        else:
+            return jsonify({'error': 'Abonamentul nu a fost găsit sau deja șters'}), 404
+
+    except mysql.connector.Error as err:
+        print(f"Error: {err}")
+        return jsonify({'error': 'A apărut o eroare la ștergerea abonamentului'}), 500
+
+    finally:
+        cursor.close()
+        connection.close()
+
 if __name__ == '__main__':
     #app.run(debug=True)
     socketio.run(app, debug=True, port=8002)
