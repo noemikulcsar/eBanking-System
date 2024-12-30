@@ -17,7 +17,7 @@ db_config = {
     'database': 'utpay'  
 }
 
-# Cache pentru sold si economii
+
 cache_balance = {}
 
 def get_balance_from_db(client_id):
@@ -44,7 +44,7 @@ def get_balance_from_db(client_id):
 
 @app.route('/api/balance', methods=['GET'])
 def get_balance():
-    client_id = 1  # Poți modifica această valoare sau să o obții din sesiune
+    client_id = 1 
     balance_data = get_balance_from_db(client_id)
     if balance_data:
         return jsonify({'balance': balance_data['sold'], 'savings': balance_data['economii']})
@@ -76,7 +76,7 @@ def get_client_data(client_id):
         return None
 @app.route('/api/personal-data', methods=['GET'])
 def get_personal_data():
-    client_id = 1  # Poți modifica această valoare sau să o obții din sesiune
+    client_id = 1 
     client_data = get_client_data(client_id)
     
     if client_data:
@@ -108,16 +108,16 @@ def transfer():
         if not sender_account or sender_account['sold'] < amount:
             return jsonify({'error': 'Fonduri insuficiente pentru transfer'}), 400
 
-        # Actualizăm soldurile
+    
         cursor.execute("UPDATE cont SET sold = sold + %s WHERE id_client = %s", (amount, recipient['id']))
         cursor.execute("UPDATE cont SET sold = sold - %s WHERE id_client = 1", (amount,))
 
-        # Adăugăm tranzacția în tabela 'tranzactie'
+        
         cursor.execute("""
             INSERT INTO tranzactie (id_expeditor, id_destinatar, suma, data, tip_destinatar, detalii)
             VALUES (%s, %s, %s, NOW(), 'client', NULL)
         """, (1, recipient['id'], amount))
-        # Adăugăm notificarea în tabela 'notificare'
+
         cursor.execute("""
             INSERT INTO notificare (id_client, mesaj, data_notificare, status)
             VALUES (%s, %s, NOW(), %s)
@@ -172,11 +172,11 @@ def transaction_history():
 
         transactions = cursor.fetchall()
         for transaction in transactions:
-            # Modificăm suma pentru clientul cu id=1
+            
             if transaction['id_expeditor'] == 1:
-                transaction['suma'] = -transaction['suma']  # Clientul 1 scade suma
+                transaction['suma'] = -transaction['suma']  
             elif transaction['id_destinatar'] == 1:
-                transaction['suma'] = '+' + str(transaction['suma'])  # Clientul 1 primește suma
+                transaction['suma'] = '+' + str(transaction['suma'])
         return jsonify(transactions)
 
     except mysql.connector.Error as err:
@@ -191,7 +191,6 @@ def add_notificare():
         connection = mysql.connector.connect(**db_config)
         cursor = connection.cursor()
         
-        # Datele primite de la client
         data = request.json
         id_client = data.get('id_client')
         mesaj = data.get('mesaj')
@@ -242,7 +241,7 @@ def get_subscriptions():
 
 @app.route('/api/add-friend', methods=['POST'])
 def add_friend():
-    # Obține datele din cererea POST
+
     data = request.get_json()
     
     nume = data.get('nume')
@@ -255,45 +254,38 @@ def add_friend():
         return jsonify({'error': 'Toate câmpurile sunt necesare!'}), 400
 
     try:
-        # Conectare la baza de date
+
         connection = mysql.connector.connect(**db_config)
         cursor = connection.cursor()
 
-        # Inserare date în tabela client
         cursor.execute("""
             INSERT INTO client (nume, prenume, cnp, telefon, email)
             VALUES (%s, %s, %s, %s, %s)
         """, (nume, prenume, cnp, telefon, email))
-        
-        # Obține ID-ul clientului nou creat
+
         client_id = cursor.lastrowid
 
-        # Generare date randomizate pentru tabelul cont
         iban_base = "RO49AAAA1B31007593"
-        iban_random = str(random.randint(100000, 999999))  # Randomizează ultimele 6 cifre
+        iban_random = str(random.randint(100000, 999999))
         iban = iban_base + iban_random
-        card_number = ''.join([str(random.randint(0, 9)) for _ in range(16)])  # Număr card 16 cifre
-        cvv = random.randint(100, 999)  # CVV 3 cifre
+        card_number = ''.join([str(random.randint(0, 9)) for _ in range(16)])
+        cvv = random.randint(100, 999)
 
-        # Generare dată expirare random (compatibil cu MySQL)
-        expiry_year = random.randint(2028, 2035)  # An după 2028
-        expiry_month = random.randint(1, 12)  # Lună
-        expiry_day = 1  # Fixăm ziua ca 1
+        expiry_year = random.randint(2028, 2035)
+        expiry_month = random.randint(1, 12)
+        expiry_day = 1
         expiry_date = date(expiry_year, expiry_month, expiry_day).isoformat()
 
-        # Inserare date în tabela cont
         cursor.execute("""
             INSERT INTO cont (id_client, iban, sold, economii, numar_card, cvv, data_expirare)
             VALUES (%s, %s, %s, %s, %s, %s, %s)
         """, (client_id, iban, 0, 0, card_number, cvv, expiry_date))
 
-        # Inserare relație de prietenie în tabela prietenie
         cursor.execute("""
             INSERT INTO prietenie (id_client1, id_client2, datorie)
             VALUES (%s, %s, %s)
         """, (1, client_id, 0))
         
-        # Confirmă inserarea datelor
         connection.commit()
         return jsonify({'success': True, 'message': 'Prieten adăugat cu succes!'}), 200
 
@@ -301,6 +293,21 @@ def add_friend():
         print(f"Error: {err}")
         return jsonify({'error': 'A apărut o eroare la adăugarea prietenului.'}), 500
 
+    finally:
+        cursor.close()
+        connection.close()
+
+@app.route('/api/clients', methods=['GET'])
+def get_clients():
+    try:
+        connection = mysql.connector.connect(**db_config)
+        cursor = connection.cursor(dictionary=True)
+        cursor.execute("SELECT id, nume, prenume FROM client")
+        clients = cursor.fetchall()
+        return jsonify(clients), 200
+    except mysql.connector.Error as err:
+        print(f"Error: {err}")
+        return jsonify({'error': 'Eroare la obținerea listei de clienți'}), 500
     finally:
         cursor.close()
         connection.close()
