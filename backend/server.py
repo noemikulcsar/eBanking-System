@@ -613,7 +613,6 @@ def add_objective():
 @app.route('/api/add-debt', methods=['POST'])
 def add_debt():
     try:
-
         data = request.get_json()
         payer_id = data['payerId']
         client_id = data['clientId']
@@ -627,29 +626,29 @@ def add_debt():
 
         query_check = """
             SELECT datorie FROM prietenie
-            WHERE (id_client1 = %s AND id_client2 = %s) OR (id_client1 = %s AND id_client2 = %s)
+            WHERE id_client1 = %s AND id_client2 = %s
         """
-        cursor.execute(query_check, (payer_id, client_id, client_id, payer_id))
+        cursor.execute(query_check, (client_id, payer_id))
         existing_debt = cursor.fetchone()
 
         if existing_debt:
-            new_amount = existing_debt['datorie'] + amount
+            new_amount = existing_debt[0] + amount  # Accesarea valorii din tuplu
             query_update = """
                 UPDATE prietenie
                 SET datorie = %s
-                WHERE (id_client1 = %s AND id_client2 = %s) OR (id_client1 = %s AND id_client2 = %s)
+                WHERE (id_client1 = %s AND id_client2 = %s)
             """
-            cursor.execute(query_update, (new_amount, payer_id, client_id, client_id, payer_id))
+            cursor.execute(query_update, (new_amount, client_id, payer_id))
             connection.commit()
             message = f"Suma datorată a fost actualizată la {new_amount} RON."
         else:
-
-            current_date = date.now().strftime('%Y-%m-%d %H:%M:%S')
+            # Obținerea datei curente fără ora, folosind `date.today()`
+            current_date = date.today().strftime('%Y-%m-%d')  # Formatarea datei curente
             query_insert = """
                 INSERT INTO prietenie (id_client1, id_client2, datorie, data_datorie)
                 VALUES (%s, %s, %s, %s)
             """
-            cursor.execute(query_insert, (payer_id, client_id, amount, current_date))
+            cursor.execute(query_insert, (client_id, payer_id, amount, current_date))
             connection.commit()
             message = f"Datoria a fost adăugată cu succes! Suma datorată este {amount} RON."
 
