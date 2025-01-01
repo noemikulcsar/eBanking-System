@@ -17,7 +17,6 @@ db_config = {
     'database': 'utpay'  
 }
 
-
 cache_balance = {}
 
 def get_balance_from_db(client_id):
@@ -74,6 +73,7 @@ def get_client_data(client_id):
     except mysql.connector.Error as err:
         print(f"Error: {err}")
         return None
+    
 @app.route('/api/personal-data', methods=['GET'])
 def get_personal_data():
     client_id = 1 
@@ -83,36 +83,37 @@ def get_personal_data():
         return jsonify(client_data)
     else:
         return jsonify({'error': 'Datele clientului nu au fost găsite'}), 404
+    
 @app.route('/api/transfer', methods=['POST'])
 def transfer():
     data = request.get_json()
-    phone_number = data.get('phoneNumber')
+    recipient_id = data.get('clientId')
     amount = data.get('amount')
-
-    if not phone_number or not amount:
-        return jsonify({'error': 'Phone number or amount is missing'}), 400
+    
+    if not amount:
+        return jsonify({'error': 'Amount is missing'}), 400
 
     try:
+    
         connection = mysql.connector.connect(**db_config)
         cursor = connection.cursor(dictionary=True)
 
-        cursor.execute("SELECT id FROM client WHERE telefon = %s", (phone_number,))
+        cursor.execute("SELECT id FROM client WHERE id = %s", (recipient_id,))
         recipient = cursor.fetchone()
+        print(f"clientId received: {recipient}")
 
         if not recipient:
-            return jsonify({'error': 'Clientul cu acest număr de telefon nu a fost găsit'}), 404
+            return jsonify({'error': 'Recipient not found'}), 404
 
         cursor.execute("SELECT sold FROM cont WHERE id_client = 1")
         sender_account = cursor.fetchone()
 
         if not sender_account or sender_account['sold'] < amount:
-            return jsonify({'error': 'Fonduri insuficiente pentru transfer'}), 400
+            return jsonify({'error': 'Insufficient funds for the transfer'}), 400
 
-    
         cursor.execute("UPDATE cont SET sold = sold + %s WHERE id_client = %s", (amount, recipient['id']))
         cursor.execute("UPDATE cont SET sold = sold - %s WHERE id_client = 1", (amount,))
 
-        
         cursor.execute("""
             INSERT INTO tranzactie (id_expeditor, id_destinatar, suma, data, tip_destinatar, detalii)
             VALUES (%s, %s, %s, NOW(), 'client', NULL)
@@ -121,18 +122,22 @@ def transfer():
         cursor.execute("""
             INSERT INTO notificare (id_client, mesaj, data_notificare, status)
             VALUES (%s, %s, NOW(), %s)
-            """, (1, f'Transfer de {amount} RON către {recipient["id"]} efectuat cu succes!', 'necitit'))
+        """, (1, f'Transfer of {amount} RON to client ID {recipient["id"]} was successful!', 'necitit'))
 
         connection.commit()
-        socketio.emit('transaction_notification', {'message': f'Transfer de {amount} RON efectuat cu succes!'})
+
+        socketio.emit('transaction_notification', {'message': f'Transfer of {amount} RON was successful!'})
+
         return jsonify({'success': True})
 
     except mysql.connector.Error as err:
         print(f"Error: {err}")
-        return jsonify({'error': 'A apărut o eroare la procesarea transferului'}), 500
+        return jsonify({'error': 'An error occurred while processing the transfer'}), 500
     finally:
-        cursor.close()
-        connection.close()
+        if cursor:
+            cursor.close()
+        if connection:
+            connection.close()
 
 @app.route('/api/client-by-phone/<phone_number>', methods=['GET'])
 def get_client_by_phone(phone_number):
@@ -147,6 +152,25 @@ def get_client_by_phone(phone_number):
             return jsonify(client)
         else:
             return jsonify({'error': 'Clientul nu a fost găsit'}), 404
+    except mysql.connector.Error as err:
+        print(f"Error: {err}")
+        return jsonify({'error': 'A apărut o eroare la preluarea datelor clientului'}), 500
+
+@app.route('/api/client-by-name/<nume>/<prenume>', methods=['GET'])
+def get_client_by_name(nume, prenume):
+    try:
+        connection = mysql.connector.connect(**db_config)
+        cursor = connection.cursor(dictionary=True)
+        cursor.execute("SELECT id FROM client WHERE nume = %s AND prenume = %s", (nume, prenume))
+        client = cursor.fetchone()
+        cursor.close()
+        connection.close()
+        
+        if client:
+            return jsonify(client)
+        else:
+            return jsonify({'error': 'Clientul nu a fost găsit'}), 404
+            
     except mysql.connector.Error as err:
         print(f"Error: {err}")
         return jsonify({'error': 'A apărut o eroare la preluarea datelor clientului'}), 500
@@ -185,6 +209,7 @@ def transaction_history():
     finally:
         cursor.close()
         connection.close()
+
 @app.route('/api/notificare', methods=['POST'])
 def add_notificare():
     try:
@@ -340,7 +365,7 @@ def delete_subscription_by_name():
     finally:
         cursor.close()
         connection.close()
-        
+
 @app.route('/api/debt', methods=['GET'])
 def get_debt_data():
     try:
@@ -365,7 +390,60 @@ def get_debt_data():
         cursor.close()
         connection.close()
 
+@app.route('/api/add-debt', methods=['POST'])
+def add_debt():
+    try:
+
+        data = request.get_json()
+        payer_id = data['payerId']
+        client_id = data['clientId']
+        amount = data['amount']
+
+        if not payer_id or not client_id or not amount or amount <= 0:
+            return jsonify({'error': 'Date invalide pentru datoria adăugată'}), 400
+
+        connection = mysql.connector.connect(**db_config)
+        cursor = connection.cursor()
+
+        query_check = """
+            SELECT datorie FROM prietenie
+            WHERE (id_client1 = %s AND id_client2 = %s) OR (id_client1 = %s AND id_client2 = %s)
+        """
+        cursor.execute(query_check, (payer_id, client_id, client_id, payer_id))
+        existing_debt = cursor.fetchone()
+
+        if existing_debt:
+            new_amount = existing_debt['datorie'] + amount
+            query_update = """
+                UPDATE prietenie
+                SET datorie = %s
+                WHERE (id_client1 = %s AND id_client2 = %s) OR (id_client1 = %s AND id_client2 = %s)
+            """
+            cursor.execute(query_update, (new_amount, payer_id, client_id, client_id, payer_id))
+            connection.commit()
+            message = f"Suma datorată a fost actualizată la {new_amount} RON."
+        else:
+
+            current_date = date.now().strftime('%Y-%m-%d %H:%M:%S')
+            query_insert = """
+                INSERT INTO prietenie (id_client1, id_client2, datorie, data_datorie)
+                VALUES (%s, %s, %s, %s)
+            """
+            cursor.execute(query_insert, (payer_id, client_id, amount, current_date))
+            connection.commit()
+            message = f"Datoria a fost adăugată cu succes! Suma datorată este {amount} RON."
+
+        cursor.close()
+        connection.close()
+
+        return jsonify({'message': message}), 201
+
+    except mysql.connector.Error as err:
+        print(f"Error: {err}")
+        return jsonify({'error': 'A apărut o eroare la adăugarea datoriei'}), 500
+
 if __name__ == '__main__':
     #app.run(debug=True)
     socketio.run(app, debug=True, port=8002)
+
 

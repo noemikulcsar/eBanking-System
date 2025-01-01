@@ -86,27 +86,34 @@ const DebtPage = () => {
         ))}
       </Grid>
 
-      {/* notifications */}
-      {notifications.map((notification, index) => (
-        <Snackbar
-          key={notification.id}
-          open={notification.open}
-          anchorOrigin={{
-            vertical: 'bottom',
-            horizontal: 'right',
-          }}
-          style={{
-            bottom: `${20 + index * 50}px`,
-          }}
-        >
-          <Alert
-            severity="warning"
-            sx={{ width: '100%' }}
-          >
-            {notification.message}
-          </Alert>
-        </Snackbar>
-      ))}
+{/* Notifications */}
+{notifications.map((notification, index) => (
+  <Snackbar
+    key={notification.id}
+    open={notification.open}
+    anchorOrigin={{
+      vertical: 'bottom',
+      horizontal: 'right',
+    }}
+    style={{
+      bottom: `${20 + index * 75}px`,
+    }}
+  >
+    <Alert
+      severity="warning"
+      sx={{
+        width: '400px',
+        textAlign: 'center',
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+      }}
+    >
+      {notification.message}
+    </Alert>
+  </Snackbar>
+))}
+
 
       {/* close all */}
       {notifications.length > 0 && (
