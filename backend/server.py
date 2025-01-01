@@ -6,6 +6,15 @@ from flask_socketio import SocketIO
 import random
 from datetime import date, timedelta
 
+#economii
+from abc import ABC, abstractmethod
+
+class FinancialOperation(ABC):
+    @abstractmethod
+    def execute(self, client_id, amount, db_config):
+        pass
+#economii
+
 app = Flask(__name__)
 CORS(app)
 socketio = SocketIO(app, cors_allowed_origins="*")
@@ -13,7 +22,7 @@ socketio = SocketIO(app, cors_allowed_origins="*")
 db_config = {
     'host': 'localhost',
     'user': 'root',  
-    'password': 'rootroot',  
+    'password': 'vydqyc-radsoz',  
     'database': 'utpay'  
 }
 
@@ -35,6 +44,7 @@ def get_balance_from_db(client_id):
         
         if result:
             cache_balance[client_id] = result
+            print(result)
             return result
         else:
             return None
@@ -364,6 +374,216 @@ def get_debt_data():
     finally:
         cursor.close()
         connection.close()
+
+
+#economii 
+#depunere
+class Deposit(FinancialOperation):
+    def execute(self, client_id, amount, db_config):
+        try:
+            connection = mysql.connector.connect(**db_config)
+            cursor = connection.cursor()
+
+            # Obținem soldul curent al clientului
+            cursor.execute("SELECT sold, economii FROM cont WHERE id_client = %s", (client_id,))
+            result = cursor.fetchone()
+
+            if result is None:
+                return {'error': 'Client not found'}
+
+            current_balance = result[0]  # Soldul curent
+            current_savings = result[1]  # Economiile curente
+
+            # Verificăm dacă suma depusă nu este mai mare decât soldul curent
+            if amount > current_balance:
+                return {'error': 'Deposit amount cannot be greater than current balance'}
+
+            #(scădem suma din sold)
+            new_balance = current_balance - amount
+
+            #(adăugăm suma la economii)
+            new_savings = current_savings + amount
+
+            #executăm interogările pentru actualizarea soldului și economiilor
+            cursor.execute("UPDATE cont SET sold = %s, economii = %s WHERE id_client = %s", 
+                           (new_balance, new_savings, client_id))
+
+            connection.commit()
+
+            #reobținem economiile și soldul actualizat
+            cursor.execute("SELECT sold, economii FROM cont WHERE id_client = %s", (client_id,))
+            result = cursor.fetchone()
+
+            return {'success': True, 'balance': result[0], 'savings': result[1]} if result else {'error': 'Client not found'}
+
+        except mysql.connector.Error as err:
+            print(f"Error: {err}")
+            return {'error': 'Database error'}
+        finally:
+            cursor.close()
+            connection.close()
+@app.route('/api/deposit', methods=['POST'])
+def deposit():
+    data = request.json
+    amount = data.get('amount', 0)
+
+    strategy = Deposit()
+    result = strategy.execute(1, amount, db_config)
+    if result.get('success'):
+        return jsonify(result)
+    else:
+        return jsonify(result), 400
+
+#retragere
+class Withdraw(FinancialOperation):
+    def execute(self, client_id, amount, db_config):
+        try:
+            connection = mysql.connector.connect(**db_config)
+            cursor = connection.cursor()
+
+            # Obținem soldul curent și economiile
+            cursor.execute("SELECT sold, economii FROM cont WHERE id_client = %s", (client_id,))
+            result = cursor.fetchone()
+
+            if not result:
+                return {'error': 'Client not found'}
+
+            current_balance = result[0]  # Soldul curent
+            current_savings = result[1]  # Economiile curente
+
+            # Verificăm dacă clientul are fonduri suficiente în economii
+            if current_savings < amount:
+                return {'error': 'Fonduri insuficiente pentru retragere'}
+
+            # Retragem suma din economii și o adăugăm în soldul curent
+            new_savings = current_savings - amount
+            new_balance = current_balance + amount
+
+            # Executăm interogarea pentru actualizarea economiilor și a soldului
+            cursor.execute("UPDATE cont SET sold = %s, economii = %s WHERE id_client = %s", 
+                           (new_balance, new_savings, client_id))
+
+            connection.commit()
+
+            # Reobținem soldul și economiile actualizate
+            cursor.execute("SELECT sold, economii FROM cont WHERE id_client = %s", (client_id,))
+            result = cursor.fetchone()
+
+            # Verificăm dacă clientul a fost găsit și returnăm valorile actualizate
+            return {'success': True, 'balance': result[0], 'savings': result[1]} if result else {'error': 'Client not found'}
+
+        except mysql.connector.Error as err:
+            print(f"Error: {err}")
+            return {'error': 'Database error'}
+        finally:
+            cursor.close()
+            connection.close()
+
+@app.route('/api/withdraw', methods=['POST'])
+def withdraw():
+    data = request.json
+    amount = data.get('amount', 0)
+
+    strategy = Withdraw()
+    result = strategy.execute(1, amount, db_config)
+    
+    if result.get('success'):
+        return jsonify(result)  # Returnează result care conține soldul și economiile actualizate
+    else:
+        return jsonify(result), 400
+
+
+#obiectiv
+def get_objectives(client_id):
+    try:
+        connection = mysql.connector.connect(**db_config)
+        cursor = connection.cursor(dictionary=True)
+        cursor.execute("SELECT id_obiective, suma_obiectiv, descriere FROM obiective WHERE client_id = %s", (client_id,))
+        return cursor.fetchall()
+    except mysql.connector.Error as err:
+        print(f"Error: {err}")
+        return None
+    finally:
+        if connection.is_connected():
+            cursor.close()
+            connection.close()
+
+
+
+@app.route('/api/objectives', methods=['GET'])
+def get_objectives_data():
+    client_id = 1  
+    objectives_data = get_objectives(client_id)
+
+    if objectives_data:
+        return jsonify(objectives_data)
+        print(objectives_data)
+    else:
+        return jsonify({'error': 'Obiectivele clientului nu au fost găsite'}), 404
+
+
+
+#sterge obiectiv
+@app.route('/api/objectives/<int:objective_id>', methods=['DELETE'])
+def delete_objective(objective_id):
+    try:
+        connection = mysql.connector.connect(**db_config)
+        cursor = connection.cursor()
+
+        # Șterge obiectivul cu ID-ul specificat
+        cursor.execute("DELETE FROM obiective WHERE id_obiective = %s AND client_id = %s", (objective_id, 1))
+        connection.commit()
+
+        if cursor.rowcount > 0:
+            return jsonify({'success': True, 'message': 'Obiectiv șters cu succes'}), 200
+        else:
+            return jsonify({'error': 'Obiectivul nu a fost găsit'}), 404
+    except mysql.connector.Error as err:
+        print(f"Error: {err}")
+        return jsonify({'error': 'A apărut o eroare la ștergerea obiectivului'}), 500
+    finally:
+        if connection.is_connected():
+            cursor.close()
+            connection.close()
+
+#adaugare nou obiectiv
+@app.route('/api/add_objectives', methods=['POST'])
+def add_objective():
+    try:
+        data = request.get_json()
+        descriere = data.get('descriere')
+        suma_obiectiv = data.get('suma_obiectiv')
+
+        if not descriere or not suma_obiectiv:
+            return jsonify({'error': 'Descrierea și suma obiectivului sunt necesare!'}), 400
+
+        connection = mysql.connector.connect(**db_config)
+        cursor = connection.cursor(dictionary=True)
+
+        query = """
+            INSERT INTO obiective (client_id, descriere, suma_obiectiv)
+            VALUES (%s, %s, %s)
+        """
+        cursor.execute(query, (1, descriere, suma_obiectiv))  
+        connection.commit()
+
+        new_objective = {
+            'id_obiective': cursor.lastrowid,
+            'descriere': descriere,
+            'suma_obiectiv': suma_obiectiv,
+        }
+
+        return jsonify({'success': True, 'newObjective': new_objective}), 201
+    except mysql.connector.Error as err:
+        print(f"Error: {err}")
+        return jsonify({'error': 'A apărut o eroare la adăugarea obiectivului'}), 500
+    finally:
+        if connection.is_connected():
+            cursor.close()
+            connection.close()
+
+#economii
+
 
 if __name__ == '__main__':
     #app.run(debug=True)
