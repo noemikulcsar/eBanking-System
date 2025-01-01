@@ -22,7 +22,7 @@ socketio = SocketIO(app, cors_allowed_origins="*")
 db_config = {
     'host': 'localhost',
     'user': 'root',  
-    'password': 'vydqyc-radsoz',  
+    'password': 'rootroot',  
     'database': 'utpay'  
 }
 

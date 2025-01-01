@@ -1,3 +1,5 @@
+
+
 import React, { useState, useEffect, useRef } from 'react';
 import { TextField, Button, Grid, Typography, Box, Snackbar, Alert, MenuItem } from '@mui/material';
 import QRCode from 'qrcode'; 
@@ -53,19 +55,16 @@ const TransferPage = () => {
       });
     }
   };
-  
+
   const stopScanning = () => {
-    if (videoRef.current) {
-    
-      const stream = videoRef.current.srcObject;
-      if (stream) {
-        const tracks = stream.getTracks();
-        tracks.forEach(track => track.stop());
-        videoRef.current.srcObject = null;
-      }
+    const stream = videoRef.current?.srcObject;
+  
+    if (stream) {
+      stream.getTracks().forEach(track => track.stop());
       videoRef.current.srcObject = null;
     }
   };
+  
   
   useEffect(() => {
     if (isScanning) {
