@@ -148,6 +148,70 @@ def transfer():
             cursor.close()
         if connection:
             connection.close()
+@app.route('/api/debt/pay', methods=['POST'])
+def pay_debt():
+    data = request.get_json()
+    name = data.get('name')
+
+    if not name:
+        return jsonify({'error': 'Name is missing'}), 400
+
+    try:
+        nume, prenume = name.split(' ')
+
+        connection = mysql.connector.connect(**db_config)
+        cursor = connection.cursor(dictionary=True)
+
+        cursor.execute(
+            "SELECT id FROM client WHERE nume = %s AND prenume = %s",
+            (nume, prenume)
+        )
+        client = cursor.fetchone()
+
+        if not client:
+            return jsonify({'error': 'Recipient not found'}), 404
+
+        recipient_id = client['id']
+
+        cursor.execute(
+            "SELECT datorie, data_datorie FROM prietenie WHERE id_client1 = %s AND id_client2 = %s",
+            (1, recipient_id)
+        )
+        debt = cursor.fetchone()
+
+        if not debt:
+            return jsonify({'error': 'No debt found with this client'}), 404
+
+        amount = debt['datorie']
+
+        cursor.execute("SELECT sold FROM cont WHERE id_client = 1")
+        sender_account = cursor.fetchone()
+
+        if sender_account['sold'] < amount:
+            return jsonify({'error': 'Insufficient funds for the transfer'}), 400
+
+        cursor.execute("UPDATE cont SET sold = sold + %s WHERE id_client = %s", (amount, recipient_id))
+        cursor.execute("UPDATE cont SET sold = sold - %s WHERE id_client = 1", (amount,))
+
+        cursor.execute(
+            "UPDATE prietenie SET datorie = 0, data_datorie = NULL WHERE id_client1 = %s AND id_client2 = %s",
+            (1, recipient_id)
+        )
+
+        connection.commit()
+
+        return jsonify({'success': True, 'message': f'Debt of {amount} RON paid to {name} successfully!'}), 200
+
+    except mysql.connector.Error as err:
+        print(f"Error: {err}")
+        return jsonify({'error': 'An error occurred while processing the debt payment'}), 500
+
+    finally:
+        if cursor:
+            cursor.close()
+        if connection:
+            connection.close()
+
 
 @app.route('/api/client-by-phone/<phone_number>', methods=['GET'])
 def get_client_by_phone(phone_number):
@@ -632,7 +696,7 @@ def add_debt():
         existing_debt = cursor.fetchone()
 
         if existing_debt:
-            new_amount = existing_debt[0] + amount  # Accesarea valorii din tuplu
+            new_amount = existing_debt[0] + amount 
             query_update = """
                 UPDATE prietenie
                 SET datorie = %s
@@ -642,8 +706,8 @@ def add_debt():
             connection.commit()
             message = f"Suma datorată a fost actualizată la {new_amount} RON."
         else:
-            # Obținerea datei curente fără ora, folosind `date.today()`
-            current_date = date.today().strftime('%Y-%m-%d')  # Formatarea datei curente
+            
+            current_date = date.today().strftime('%Y-%m-%d')  
             query_insert = """
                 INSERT INTO prietenie (id_client1, id_client2, datorie, data_datorie)
                 VALUES (%s, %s, %s, %s)

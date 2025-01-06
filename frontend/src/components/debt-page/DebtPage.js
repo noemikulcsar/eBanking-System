@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Grid, Card, CardContent, Typography, Table, TableBody, TableCell, TableContainer, TableRow, Paper, Snackbar, Alert, IconButton } from '@mui/material';
+import { Grid, Card, CardContent, Typography, Table, TableBody, TableCell, TableContainer, TableRow, Paper, Snackbar, Alert, IconButton, Button } from '@mui/material';
 import axios from 'axios';
 import CloseIcon from '@mui/icons-material/Close';
 
@@ -52,6 +52,17 @@ const DebtPage = () => {
     fetchDebtData();
   }, []);
 
+  const handlePayDebt = async (debtName) => {
+    try {
+
+      await axios.post('http://localhost:8002/api/debt/pay', { name: debtName });
+      setDebtData((prevData) => prevData.filter((debt) => debt.name !== debtName));
+    } catch (error) {
+      console.error('Error paying debt:', error);
+    }
+  };
+  
+
   const handleCloseAllNotifications = () => {
     setNotifications([]);
   };
@@ -80,40 +91,47 @@ const DebtPage = () => {
                     </TableBody>
                   </Table>
                 </TableContainer>
+                <Button
+                  variant="contained"
+                  color="success"
+                  sx={{ marginTop: 2 }}
+                  onClick={() => handlePayDebt(debt.name)}
+                >
+                  Pay
+                </Button>
               </CardContent>
             </Card>
           </Grid>
         ))}
       </Grid>
 
-{/* Notifications */}
-{notifications.map((notification, index) => (
-  <Snackbar
-    key={notification.id}
-    open={notification.open}
-    anchorOrigin={{
-      vertical: 'bottom',
-      horizontal: 'right',
-    }}
-    style={{
-      bottom: `${20 + index * 75}px`,
-    }}
-  >
-    <Alert
-      severity="warning"
-      sx={{
-        width: '400px',
-        textAlign: 'center',
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-      }}
-    >
-      {notification.message}
-    </Alert>
-  </Snackbar>
-))}
-
+      {/* Notifications */}
+      {notifications.map((notification, index) => (
+        <Snackbar
+          key={notification.id}
+          open={notification.open}
+          anchorOrigin={{
+            vertical: 'bottom',
+            horizontal: 'right',
+          }}
+          style={{
+            bottom: `${20 + index * 75}px`,
+          }}
+        >
+          <Alert
+            severity="warning"
+            sx={{
+              width: '400px',
+              textAlign: 'center',
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+            }}
+          >
+            {notification.message}
+          </Alert>
+        </Snackbar>
+      ))}
 
       {/* close all */}
       {notifications.length > 0 && (
