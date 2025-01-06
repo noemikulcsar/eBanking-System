@@ -12,7 +12,7 @@ const DebtPage = () => {
   const [openDialog, setOpenDialog] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
 
-  // Funcție pentru a calcula vechimea datoriei în luni
+
   const calculateDebtAgeInMonths = (debtDateString) => {
     const debtDate = new Date(debtDateString);
     const currentDate = new Date();
@@ -33,7 +33,6 @@ const DebtPage = () => {
     return debtAgeInMonths >= 1;
   };
 
-  // Fetch the debt data when component mounts
   const fetchDebtData = async () => {
     try {
       const response = await axios.get('http://localhost:8002/api/debt');
@@ -56,19 +55,18 @@ const DebtPage = () => {
     }
   };
 
-  // Fetch the clients and filter out client with id = 1
   const fetchClients = async () => {
     try {
       const response = await axios.get('http://localhost:8002/api/clients');
-      setClients(response.data.filter(client => client.id !== 1)); // filter out client with id=1
+      setClients(response.data.filter(client => client.id !== 1)); 
     } catch (error) {
-      console.error('Eroare la obținerea listei de clienți:', error);
+      console.error('Error obtaining friend list:', error);
     }
   };
 
   useEffect(() => {
-    fetchDebtData(); // Fetch debt data when the component mounts
-    fetchClients(); // Fetch clients when the component mounts
+    fetchDebtData(); 
+    fetchClients(); 
   }, []);
 
   const handlePayDebt = async (debtName) => {
@@ -90,21 +88,21 @@ const DebtPage = () => {
 
   const handleCloseDialog = () => {
     setOpenDialog(false);
+    setSelectedClientName('');
+    setAmount('');
   };
 
   const handleAddDebt = async () => {
     if (!selectedClientName || !amount) {
-      console.error('Te rog selectează un client și introduce suma.');
+      console.error('Please select a friend and an amount.');
       return;
     }
-
-    // Găsim clientul selectat pe baza numelui complet
     const selectedClient = clients.find(client => `${client.nume} ${client.prenume}` === selectedClientName);
 
     if (selectedClient) {
-      const payerId = selectedClient.id; // ID-ul clientului către care ai datoria
-      const clientId = 1;  // Presupunem că tu ești clientul cu id-ul 1 (poți ajusta acest ID după necesități)
-      const debtAmount = parseFloat(amount); // Suma datorată (convertită la float)
+      const payerId = selectedClient.id; 
+      const clientId = 1;  
+      const debtAmount = parseFloat(amount);
 
       const data = {
         payerId,
@@ -115,20 +113,14 @@ const DebtPage = () => {
       try {
         const response = await axios.post('http://localhost:8002/api/add-debt', data);
         console.log(response.data);
-
-        // Setăm mesajul de succes
-        setSuccessMessage('Datoria a fost adăugată cu succes!');
-
-        // Reîmprospătăm lista de datorii
-        fetchDebtData();  // Apelăm funcția pentru a actualiza datele cu datoriile
-
-        // Închidem dialogul
+        setSuccessMessage('Debt Added Successfully!');
+        fetchDebtData();
         handleCloseDialog();
       } catch (error) {
         console.error('Error adding debt:', error);
       }
     } else {
-      console.error('Clientul selectat nu a fost găsit!');
+      console.error('Selected client was not found!');
     }
   };
 
@@ -185,7 +177,7 @@ const DebtPage = () => {
         <DialogTitle>Add a New Debt</DialogTitle>
         <DialogContent>
           <TextField
-            label="Select Client"
+            label="Select Friend"
             select
             fullWidth
             value={selectedClientName}
