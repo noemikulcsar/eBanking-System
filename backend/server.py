@@ -148,6 +148,7 @@ def transfer():
             cursor.close()
         if connection:
             connection.close()
+
 @app.route('/api/debt/pay', methods=['POST'])
 def pay_debt():
     data = request.get_json()
@@ -157,6 +158,7 @@ def pay_debt():
         return jsonify({'error': 'Name is missing'}), 400
 
     try:
+
         nume, prenume = name.split(' ')
 
         connection = mysql.connector.connect(**db_config)
@@ -174,7 +176,7 @@ def pay_debt():
         recipient_id = client['id']
 
         cursor.execute(
-            "SELECT datorie, data_datorie FROM prietenie WHERE id_client1 = %s AND id_client2 = %s",
+            "SELECT datorie FROM prietenie WHERE id_client1 = %s AND id_client2 = %s",
             (1, recipient_id)
         )
         debt = cursor.fetchone()
@@ -194,10 +196,9 @@ def pay_debt():
         cursor.execute("UPDATE cont SET sold = sold - %s WHERE id_client = 1", (amount,))
 
         cursor.execute(
-            "UPDATE prietenie SET datorie = 0, data_datorie = NULL WHERE id_client1 = %s AND id_client2 = %s",
+            "UPDATE prietenie SET datorie = 0 WHERE id_client1 = %s AND id_client2 = %s",
             (1, recipient_id)
         )
-
         connection.commit()
 
         return jsonify({'success': True, 'message': f'Debt of {amount} RON paid to {name} successfully!'}), 200
