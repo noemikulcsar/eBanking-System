@@ -74,7 +74,7 @@ UTPay integrates **Socket.IO** to provide **real-time notifications** with **bid
 
 ---
 
-## **📫 Contact Me**  
-💡 **Kulcsar Noemi**  
-📍 Cluj-Napoca, Romania  
-📧 [noemikulcsar@yahoo.com](mailto:noemikulcsar@yahoo.com)  
+## **📫 Contact Us**  
+💡 **Kulcsar Noemi** [github.com/noemikulcsar](https://github.com/noemikulcsar)
+💡 **Repede Oana** [https://github.com/oanadamaris](https://github.com/oanadamaris)
+💡 **Ureche Simona** [https://github.com/SimonaUreche](https://github.com/SimonaUreche)
