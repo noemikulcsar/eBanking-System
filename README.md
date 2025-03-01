@@ -75,6 +75,6 @@ UTPay integrates **Socket.IO** to provide **real-time notifications** with **bid
 ---
 
 ## **📫 Contact Us**  
-💡 **Kulcsar Noemi** [github.com/noemikulcsar](https://github.com/noemikulcsar) \
+💡 **Kulcsar Noemi** [https://github.com/noemikulcsar](https://github.com/noemikulcsar) \
 💡 **Repede Oana** [https://github.com/oanadamaris](https://github.com/oanadamaris) \
 💡 **Ureche Simona** [https://github.com/SimonaUreche](https://github.com/SimonaUreche)
