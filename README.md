@@ -1,52 +1,80 @@
-**UTPay** reprezintă o aplicație financiară complexă, dezvoltată pentru a oferi utilizatorilor funcționalități avansate de gestionare a fondurilor, efectuare de tranzacții și monitorizare a finanțelor personale. Printr-un design modern și o interfață intuitivă, aplicația facilitează gestionarea tranzacțiilor, a economiilor și a abonamentelor, oferind în același timp instrumente eficiente pentru monitorizarea datoriilor și planificarea financiară.
+### **💳 UTPay - Smart Financial Management**  
 
-Sistemul este construit pe un backend robust cu Flask și MySQL și un frontend prietenos realizat în React, oferind o experiență optimizată pentru utilizator.
+🚀 **UTPay** is a **comprehensive financial application** designed by a team of passionate students to provide users with advanced tools for **fund management, transaction processing, and personal finance tracking**.  
+With a **modern design** and an **intuitive interface**, UTPay simplifies **transactions, savings, and subscriptions**, while also offering efficient tools for **debt tracking** and **financial planning**.  
 
-**Funcționalități:**
-1. **Transfer de bani:**
-Posibilitatea de a efectua tranzacții clasice prin selectarea manuală a destinatarului și introducerea sumei.
-Generare și scanare de coduri QR pentru tranzacții rapide:
-Câmpurile „To Whom” și „Amount” se completează automat după scanarea codului QR.
-Funcționalitatea „Split the bill”:
-Permite împărțirea notei de plată cu prietenii.
-Calcul automat al sumei de plată per persoană.
-Transfer direct al fondurilor către persoana care a plătit.
-2. **Pagina de economii:**
-Afișarea soldului curent și a economiilor acumulate.
-Gestionarea obiectivelor financiare:
-Adăugarea, afișarea, progresul și ștergerea obiectivelor financiare.
-Depuneri și retrageri validate pe baza soldului disponibil.
-Notificări vizuale pentru succesul sau erorile operațiunilor.
-3. **Pagina de datorii:**
-Evidența datoriilor către prieteni, cu posibilitatea:
-De a plăti datoriile existente.
-De a adăuga datorii noi.
-Notificări automate pentru datoriile neplătite:
-Reamintire lunară pentru datorii mai vechi de 1 lună.
-Afișare pe pagina principală pentru datorii mai vechi de 6 luni.
-4. **Istoric tranzacții:**
-Vizualizarea detaliilor fiecărei tranzacții:
-Suma, data, ora și destinatarul.
-5. **Subscriptions:**
-Monitorizarea abonamentelor utilizatorului.
-Identificarea abonamentelor care nu sunt suficient utilizate pentru a justifica costul.
-6. **Date personale:**
-Afișarea informațiilor utilizatorului și a detaliilor cardului.
-Aplicația integrează toate aceste funcționalități într-o manieră modulară și extensibilă, fiind ușor de adaptat pentru nevoile viitoare.
+The system is built on a **robust backend** using **Flask & MySQL** and a **user-friendly frontend** in **React**, delivering an optimized experience.  
 
-**Tehnologii utilizate**
+---
 
-**Backend – Flask**
-Framework-ul ales pentru backend a fost Flask, datorită flexibilității și simplității sale. Flask este ușor de utilizat și permite integrarea rapidă a diferitelor funcționalități prin intermediul bibliotecilor disponibile. În plus, fiind un framework minimal, permite o personalizare mai mare și un control complet asupra aplicației. Flask a fost ideal pentru acest proiect, având în vedere cerințele sale de performanță și modularitate.
+## **🌟 Features**  
 
-**Baza de date – MySQL**
-Pentru stocarea datelor a fost utilizat MySQL, datorită scalabilității și performanței sale. Structura bazei de date a fost proiectată astfel încât să permită relații eficiente între tabele, iar informațiile să poată fi accesate rapid. De asemenea, MySQL oferă o integrare ușoară cu Flask prin intermediul unor biblioteci precum mysql-connector-python.
+### **💸 Money Transfers**  
+- **Classic transactions**: Manually select the recipient and enter the amount.  
+- **QR Code payments**:  
+  - Scan & generate QR codes for instant transactions.  
+  - Fields "To Whom" and "Amount" autofill after scanning.  
+- **Split the bill**:  
+  - Automatically calculates each person's share.  
+  - Instantly transfers funds to the payer.  
 
-**Frontend – React**
-React a fost utilizat pentru dezvoltarea interfeței utilizator. Fiind o tehnologie modernă bazată pe component-based architecture, React a permis crearea unei aplicații frontend performante, scalabile și ușor de întreținut. Utilizarea Virtual DOM și a unor biblioteci precum Material-UI a contribuit la o experiență de utilizare plăcută și dinamică.
+### **💰 Savings Dashboard**  
+- Displays **current balance and total savings**.  
+- **Goal-based savings management**:  
+  - Add, track progress, and remove financial goals.  
+  - Deposit & withdraw funds based on available balance.  
+  - **Visual notifications** for successful or failed operations.  
 
-**Socket.IO**
-Pentru notificările în timp real, proiectul a integrat Socket.IO, care permite comunicarea bidirecțională între server și client. Această tehnologie asigură livrarea instantă a notificărilor către utilizatori.
+### **📑 Debt Tracking**  
+- **Keep track of debts to friends** with options to:  
+  - Pay off existing debts.  
+  - Add new debts.  
+- **Automatic debt reminders**:  
+  - Monthly notifications for debts **older than 1 month**.  
+  - **Homepage alerts** for debts **older than 6 months**.  
 
-**Coduri QR – ZXing și QRCode**
-Pentru generarea și scanarea codurilor QR s-au utilizat librăriile @zxing/browser și qrcode. Acestea permit inițierea transferurilor direct prin scanarea unui cod QR asociat unui cont sau unei tranzacții.
+### **📜 Transaction History**  
+- View detailed information about each transaction:  
+  - **Amount, date, time, and recipient.**  
+
+### **📆 Subscription Management**  
+- Monitor **active subscriptions**.  
+- Identify **underused subscriptions** that may not be cost-effective.  
+
+### **🙍 Personal Data**  
+- Displays **user details and card information**.  
+
+UTPay integrates all these features in a **modular and scalable** way, making it easy to **adapt and expand** for future needs.  
+
+---
+
+## **🛠️ Technologies Used**  
+
+### **🔗 Backend – Flask**  
+The backend is built using **Flask**, chosen for its **flexibility** and **simplicity**. Flask allows **rapid integration** of various features through **powerful libraries**, offering full control over the application.  
+✅ **Lightweight & modular**  
+✅ **Great performance**  
+✅ **Easy integration with MySQL**  
+
+### **💾 Database – MySQL**  
+MySQL was selected for its **scalability and performance**. The **efficient table relationships** allow **fast data retrieval**, and it seamlessly integrates with Flask via **mysql-connector-python**.  
+
+### **🖥️ Frontend – React**  
+**React** powers the frontend with a **modern, component-based architecture**, ensuring:  
+✅ **High performance** with **Virtual DOM**  
+✅ **Scalability** for future updates  
+✅ **Enhanced user experience** with **Material-UI**  
+
+### **⚡ Real-Time Notifications – Socket.IO**  
+UTPay integrates **Socket.IO** to provide **real-time notifications** with **bidirectional communication** between server and client.  
+
+### **📷 QR Code Transactions – ZXing & QRCode**  
+- **@zxing/browser** and **qrcode** enable **QR code generation and scanning**.  
+- Users can **initiate transfers** instantly by scanning a QR code linked to an account or transaction.  
+
+---
+
+## **📫 Contact Me**  
+💡 **Kulcsar Noemi**  
+📍 Cluj-Napoca, Romania  
+📧 [noemikulcsar@yahoo.com](mailto:noemikulcsar@yahoo.com)  
